@@ -6,14 +6,14 @@ import random
 
 class Reconstruction:
     def __init__(self, P, S_0, y=0.99, theta=1e-10):
-        self.P = P                                  # Словарь со значениями
-        self.S = [s for s in P]                     # Простраснтво состояний
-        self.S_0 = S_0                              # Начальное состояние
-        self.state = S_0                            # Текущее состояние
-        self.action = None                          # Действие
-        self.reward = 0                             # Награда
-        self.y = y                                  # Коэфициент дисконтирования
-        self.theta = theta                          # Порог сходимости
+        self.P = P                                  # РЎР»РѕРІР°СЂСЊ СЃРѕ Р·РЅР°С‡РµРЅРёСЏРјРё
+        self.S = [s for s in P]                     # РџСЂРѕСЃС‚СЂР°СЃРЅС‚РІРѕ СЃРѕСЃС‚РѕСЏРЅРёР№
+        self.S_0 = S_0                              # РќР°С‡Р°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ
+        self.state = S_0                            # РўРµРєСѓС‰РµРµ СЃРѕСЃС‚РѕСЏРЅРёРµ
+        self.action = None                          # Р”РµР№СЃС‚РІРёРµ
+        self.reward = 0                             # РќР°РіСЂР°РґР°
+        self.y = y                                  # РљРѕСЌС„РёС†РёРµРЅС‚ РґРёСЃРєРѕРЅС‚РёСЂРѕРІР°РЅРёСЏ
+        self.theta = theta                          # РџРѕСЂРѕРі СЃС…РѕРґРёРјРѕСЃС‚Рё
 
     def get_state(self):
         return self.state
@@ -21,7 +21,7 @@ class Reconstruction:
     def get_action(self):
         return [a for a in P[self.state]]
 
-    def transition_func(self): # переход рандомный, поскольку еще нет оптимальных политик
+    def transition_func(self): # РїРµСЂРµС…РѕРґ СЂР°РЅРґРѕРјРЅС‹Р№, РїРѕСЃРєРѕР»СЊРєСѓ РµС‰Рµ РЅРµС‚ РѕРїС‚РёРјР°Р»СЊРЅС‹С… РїРѕР»РёС‚РёРє
         states_weights = [i for i in self.P[self.state][random.choice(self.get_action())]]
         weights = [i[0] for i in states_weights]
 
@@ -49,8 +49,9 @@ class Reconstruction:
 
 
     def policy_evaluation(self):
+
         prev_V = np.zeros(len(self.P))
-        pi = self.generate_random_policy()  # Генерация случайной политики
+        pi = self.generate_random_policy()  # Р“РµРЅРµСЂР°С†РёСЏ СЃР»СѓС‡Р°Р№РЅРѕР№ РїРѕР»РёС‚РёРєРё
         
         while True:
             V = np.zeros(len(self.P))
@@ -59,7 +60,7 @@ class Reconstruction:
                 for prob, next_state, reward, done in self.P[s][pi[s]]:
                     V[s] += prob * (reward + self.y * prev_V[next_state] * (not done)) 
 
-            if np.max(np.abs(prev_V - V)) < self.theta:  # Проверка сходимости
+            if np.max(np.abs(prev_V - V)) < self.theta:  # РџСЂРѕРІРµСЂРєР° СЃС…РѕРґРёРјРѕСЃС‚Рё
                 break
 
             prev_V = V.copy()
