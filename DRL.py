@@ -4,12 +4,12 @@ import math
 import random
 
 class Reconstruction:
-    def __init__(self, P, state, y=1, theta=1e-10):
+    def __init__(self, P, state, gamma=1, theta=1e-10):
         self.P = P                                  # Среда MDP
         self.state = state                          # Текущее состояние
         self.action = None                          # Действие
         self.reward = 0                             # Награда
-        self.y = y                                  # Коэфициент дисконтирования
+        self.gamma = gamma                          # Коэфициент дисконтирования
         self.theta = theta                          # Порог сходимости
 
     def get_action(self):
@@ -30,9 +30,9 @@ class Reconstruction:
         return self.state
 
     def reward_func(self):
-        if self.y:
-            self.y = math.exp(-0.1 * self.y)
-            self.reward = self.reward + self.P[self.state][self.action][0][2] * self.y
+        if self.gamma:
+            self.gamma = math.exp(-0.1 * self.gamma)
+            self.reward = self.reward + self.P[self.state][self.action][0][2] * self.gamma
         else:
             self.reward = self.reward + self.P[self.state][self.action][0][2]
         return self.reward
@@ -43,39 +43,36 @@ class Reconstruction:
 
         Нужна для валидации функции оценки политик. Возвращает список с доступными рандомными
         действиями для каждого возможного состояния MDP.
-
-        TO-DO: исключить терминальные состояния
         """
         pi = []
         for s in self.P:
-            actions = list(P[s].keys())
+            actions = list(self.P[s].keys())
             pi.append(random.choice(actions))
         return pi
 
-    def policy_evaluation(self):
+    def policy_evaluation(self, pi):
         """
-        Функция оценки политик.
-
-        TO-DO: Исключить оценку для терминальных состояний
+        Алгоритм оценки политик
         """
+        # Инициализируем значения V-функции нулями для первой итерации
         prev_V = np.zeros(len(self.P))
-        pi = self.get_random_policy()  # Генерация случайной политики
-
-        print(pi)
 
         while True:
+            # Обнуляем значения на текущей итерации
             V = np.zeros(len(self.P))
 
             for s in range(len(self.P)):
                 for prob, next_state, reward, done in self.P[s][pi[s]]:
-                    V[s] += prob * (reward + self.y * prev_V[next_state] * (not done)) 
+                    # Суммируем взвешенную ценность перехода в сосотояние s
+                    V[s] += prob * (reward + self.gamma * prev_V[next_state] * (not done))
 
-            if np.max(np.abs(prev_V - V)) < self.theta:  # Проверка сходимости
+            if np.max(np.abs(V - prev_V)) < self.theta:
                 break
 
             prev_V = V.copy()
 
-        return V
+            return V
+
 
     
 P = gym.make('FrozenLake-v1').env.P
@@ -84,6 +81,6 @@ model = Reconstruction(P, 0)
 
 from pprint import  pprint
 
-pprint(
-    model.P
-)
+pi = model.get_random_policy()
+print(pi)
+pprint(model.policy_evaluation(pi))
