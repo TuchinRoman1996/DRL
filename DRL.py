@@ -29,13 +29,14 @@ class Reconstruction:
 
         return self.state
 
-    def reward_func(self):
+    def reward_funcion(self, prev_V, prob, next_state, reward, done):
         if self.gamma:
             self.gamma = math.exp(-0.1 * self.gamma)
-            self.reward = self.reward + self.P[self.state][self.action][0][2] * self.gamma
+            reward = prob * (reward + self.gamma * prev_V[next_state] * (not done))
         else:
-            self.reward = self.reward + self.P[self.state][self.action][0][2]
-        return self.reward
+            reward = prob * (reward + prev_V[next_state] * (not done))
+
+        return reward
 
     def get_random_policy(self):
         """
@@ -50,6 +51,22 @@ class Reconstruction:
             pi.append(random.choice(actions))
         return pi
 
+    def v_function(self, prev_V):
+        """
+        Функция ценности состояний V
+
+        :param prev_V:
+        :return:
+        """
+        V = np.zeros(len(self.P))
+
+        for s in range(len(self.P)):
+            for prob, next_state, reward, done in self.P[s][pi[s]]:
+                # Суммируем взвешенную ценность перехода в сосотояние s
+                V[s] += self.reward_funcion(prev_V, prob, next_state, reward, done)
+
+        return V
+
     def policy_evaluation(self, pi):
         """
         Алгоритм оценки политик
@@ -58,30 +75,21 @@ class Reconstruction:
         prev_V = np.zeros(len(self.P))
 
         while True:
-            # Обнуляем значения на текущей итерации
-            V = np.zeros(len(self.P))
-
-            for s in range(len(self.P)):
-                for prob, next_state, reward, done in self.P[s][pi[s]]:
-                    # Суммируем взвешенную ценность перехода в сосотояние s
-                    V[s] += prob * (reward + self.gamma * prev_V[next_state] * (not done))
+            V = self.v_function(prev_V)
 
             if np.max(np.abs(V - prev_V)) < self.theta:
                 break
 
             prev_V = V.copy()
 
-            return V
+        return V
 
-
-
-
-    
 P = gym.make('FrozenLake-v1').env.P
-
 model = Reconstruction(P, 0)
 
 from pprint import  pprint
+
+# pprint(P)
 
 pi = model.get_random_policy()
 print(pi)
