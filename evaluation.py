@@ -1,6 +1,7 @@
 import numpy as np
 import gym
 import random
+from utils.decorators import optimality
 
 class Evaluation:
     def __init__(self, P, state, gamma=None, theta=1e-10):
@@ -50,8 +51,6 @@ class Evaluation:
         """
         Функция ценности состояний V
 
-        :param prev_V:
-        :return:
         """
         V = np.zeros(len(self.P))
 
@@ -61,6 +60,21 @@ class Evaluation:
                 V[s] += self.reward_funcion(prev_V, prob, next_state, reward, done)
 
         return V
+
+    @optimality
+    def q_function(self, V):
+        """
+        Функция ценности действий Q
+
+        """
+        Q = np.zeros((len(self.P), len(self.P[0])))
+
+        for s in range(len(self.P)):
+            for a in range(len(P[s])):
+                for prob, next_state, reward, done in self.P[s][a]:
+                    Q[s][a] += prob * (reward + self.gamma * V[next_state] * (not done))
+
+        return Q
 
     def policy_evaluation(self, pi):
         """
@@ -83,17 +97,9 @@ class Evaluation:
         """
         Алгоритм оптимизации политик
         """
-        Q = np.zeros((len(self.P), len(self.P[0])))
+        new_pi = self.q_function(V)
 
-        for s in range(len(self.P)):
-            for a in range(len(P[s])):
-                for prob, next_state, reward, done in self.P[s][a]:
-                    Q[s][a] += prob * (reward + self.gamma * V[next_state] * (not done))
-
-        # new_pi = lambda s: {s: a for s, a in enumerate(np.argmax(Q, axis=1))}[s]
-        new_pi = np.argmax(Q, axis=1)
-
-        return new_pi.tolist()
+        return new_pi
 
     def policy_iteration(self):
         """
