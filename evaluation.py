@@ -3,11 +3,10 @@ import gym
 import math
 import random
 
-class Reconstruction:
+class Evaluation:
     def __init__(self, P, state, gamma=1, theta=1e-10):
         self.P = P                                  # Среда MDP
         self.state = state                          # Текущее состояние
-        self.action = None                          # Действие
         self.reward = 0                             # Награда
         self.gamma = gamma                          # Коэфициент дисконтирования
         self.theta = theta                          # Порог сходимости
@@ -31,27 +30,24 @@ class Reconstruction:
 
     def reward_funcion(self, prev_V, prob, next_state, reward, done):
         if self.gamma:
-            self.gamma = math.exp(-0.1 * self.gamma)
             reward = prob * (reward + self.gamma * prev_V[next_state] * (not done))
         else:
             reward = prob * (reward + prev_V[next_state] * (not done))
 
         return reward
 
-    def get_random_policy(self):
+    def get_random_policy(self) -> list[int]:
         """
         Функция генерации случайной политики.
 
         Нужна для валидации функции оценки политик. Возвращает список с доступными рандомными
         действиями для каждого возможного состояния MDP.
         """
-        pi = []
-        for s in self.P:
-            actions = list(self.P[s].keys())
-            pi.append(random.choice(actions))
+        pi = [random.randint(0, len(self.P[s].keys()) - 1) for s in range(len(self.P))]
+
         return pi
 
-    def v_function(self, prev_V):
+    def v_function(self, pi, prev_V):
         """
         Функция ценности состояний V
 
@@ -75,7 +71,7 @@ class Reconstruction:
         prev_V = np.zeros(len(self.P))
 
         while True:
-            V = self.v_function(prev_V)
+            V = self.v_function(pi, prev_V)
 
             if np.max(np.abs(V - prev_V)) < self.theta:
                 break
@@ -84,13 +80,42 @@ class Reconstruction:
 
         return V
 
+    def policy_improvement(self, V):
+        """
+        Алгоритм оптимизации политик
+        """
+        Q = np.zeros((len(self.P), len(self.P[0])))
+
+        for s in range(len(self.P)):
+            for a in range(len(P[s])):
+                for prob, next_state, reward, done in self.P[s][a]:
+                    Q[s][a] += prob * (reward + self.gamma * V[next_state] * (not done))
+
+        # new_pi = lambda s: {s: a for s, a in enumerate(np.argmax(Q, axis=1))}[s]
+        new_pi = np.argmax(Q, axis=1)
+
+        return new_pi
+
+
 P = gym.make('FrozenLake-v1').env.P
-model = Reconstruction(P, 0)
+model = Evaluation(P, 0)
 
 from pprint import  pprint
 
-# pprint(P)
+def print_array(arr):
+    for i in range(0, len(arr), 4):
+        print(arr[i:i + 4])
+
 
 pi = model.get_random_policy()
-print(pi)
-pprint(model.policy_evaluation(pi))
+print('Случайно сгенерированная политика:', pi)
+V = model.policy_evaluation(pi)
+print('Оценка состояний для случайной политики:')
+print_array(V)
+print('Гамма', model.gamma)
+new_pi = model.policy_improvement(V)
+print('Оптимизированная политика:', new_pi)
+new_V = model.policy_evaluation(new_pi)
+print('Оценка состояний для новой политики:')
+print_array(new_V)
+print('Гамма', model.gamma)
