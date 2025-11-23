@@ -1,10 +1,9 @@
 import numpy as np
 import gym
-import math
 import random
 
 class Evaluation:
-    def __init__(self, P, state, gamma=1, theta=1e-10):
+    def __init__(self, P, state, gamma=None, theta=1e-10):
         self.P = P                                  # Среда MDP
         self.state = state                          # Текущее состояние
         self.reward = 0                             # Награда
@@ -94,28 +93,34 @@ class Evaluation:
         # new_pi = lambda s: {s: a for s, a in enumerate(np.argmax(Q, axis=1))}[s]
         new_pi = np.argmax(Q, axis=1)
 
-        return new_pi
+        return new_pi.tolist()
+
+    def policy_iteration(self):
+        """
+        Алгоритм итерации политик
+        """
+        pi = self.get_random_policy()
+
+        while True:
+            old_pi = pi
+            V = self.policy_evaluation(pi)
+            pi = self.policy_improvement(V)
+
+            if old_pi == pi:
+                break
+
+        return V, pi
 
 
 P = gym.make('FrozenLake-v1').env.P
-model = Evaluation(P, 0)
-
-from pprint import  pprint
+model = Evaluation(P, state=0, gamma=1)
 
 def print_array(arr):
     for i in range(0, len(arr), 4):
         print(arr[i:i + 4])
 
+V, pi = model.policy_iteration()
 
-pi = model.get_random_policy()
-print('Случайно сгенерированная политика:', pi)
-V = model.policy_evaluation(pi)
-print('Оценка состояний для случайной политики:')
-print_array(V)
-print('Гамма', model.gamma)
-new_pi = model.policy_improvement(V)
-print('Оптимизированная политика:', new_pi)
-new_V = model.policy_evaluation(new_pi)
-print('Оценка состояний для новой политики:')
-print_array(new_V)
-print('Гамма', model.gamma)
+print('Лучшая политика:')
+print_array(pi)
+
