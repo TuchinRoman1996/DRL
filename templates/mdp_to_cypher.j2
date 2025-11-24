@@ -1,0 +1,22 @@
+// Cypher запрос для создания графа MDP из переходной модели
+// Генерируется автоматически из MDP переходной модели
+
+// Создаём все узлы (состояния)
+{% for state_id in states %}
+CREATE ({{ state_names[state_id] }}:State {
+    name: {{ state_id }},
+    terminal: {{ terminal_states[state_id] }}
+})
+{% endfor %}
+
+// Создаём все связи (действия/переходы)
+{% for state_id in states %}
+{% for action_id, transitions in P[state_id].items() %}
+{% for prob, next_state, reward, done in transitions %}
+CREATE ({{ state_names[state_id] }})-[:`{{ action_id }}` {
+    probability: {{ prob }},
+    reward: {{ reward }}
+}]->({{ state_names[next_state] }})
+{% endfor %}
+{% endfor %}
+{% endfor %}

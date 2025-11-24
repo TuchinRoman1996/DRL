@@ -236,3 +236,7 @@ if __name__ == "__main__":
     
     print('\nОптимальная политика:')
     print_array(pi)
+
+    from pprint import pprint
+
+    pprint(P)
