@@ -205,8 +205,9 @@ class PolicyIterationSolver:
             - pi: Оптимальная политика.
         """
         pi = self.get_random_policy()
-
+        i =0
         while True:
+            i += 1
             old_pi = pi.copy()
             V = self.policy_evaluation(pi)
             pi = self.policy_improvement(V)
@@ -214,7 +215,35 @@ class PolicyIterationSolver:
             if old_pi == pi:
                 break
 
-        return V, pi
+        return V, pi, i
+
+    def value_iteration(self) -> Tuple[np.ndarray, Policy]:
+        """
+        Алгоритм итерации ценностей (Value Iteration).
+        
+        Итеративно вычисляет V* до сходимости.
+        """
+        V = np.zeros(len(self.P), dtype=np.float64)
+
+        i = 0
+
+        while True:
+            i += 1
+            Q = np.zeros((len(self.P), len(self.P[0])), dtype=np.float64)
+
+            for s in range(len(P)):
+                for a in range(len(P[s])):
+                    for prob, next_state, reward, done in self.P[s][a]:
+                        Q[s][a] += prob * (reward + self.gamma * V[next_state] * (not done))
+
+            if np.max(np.abs(V - np.max(Q, axis=1))) < self.theta:
+                break
+
+            V = np.max(Q, axis=1)
+
+        pi = np.argmax(Q, axis=1).tolist()
+
+        return V, pi, i
 
 if __name__ == "__main__":
     # Пример использования
@@ -224,19 +253,22 @@ if __name__ == "__main__":
     solver = PolicyIterationSolver(P, gamma=1.0)
     
     # Находим оптимальную политику
-    V, pi = solver.policy_iteration()
+    V, pi, i = solver.policy_iteration()
+    VI, pi_VI, i_VI = solver.value_iteration()
     
     def print_array(arr: List[Any], width: int = 4) -> None:
         """Выводит массив в виде сетки заданной ширины."""
         for i in range(0, len(arr), width):
             print(arr[i:i + width])
     
-    print('Оптимальная V-функция:')
+    print('Оптимальная V-функция для алгоритма итерации политик:')
     print_array(V.tolist())
-    
-    print('\nОптимальная политика:')
+
+    print('\nОптимальная V-функция для алгоритма итерации ценностей:')
+    print_array(VI.tolist())
+
+    print('\nОптимальная политика для алгоритма итерации политик:')
     print_array(pi)
 
-    from pprint import pprint
-
-    pprint(P)
+    print('\nОптимальная политика для алгоритма итерации ценностей:')
+    print_array(pi_VI)
