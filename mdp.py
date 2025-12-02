@@ -4,23 +4,10 @@ import gym
 import random
 from utils.decorators import optimality
 
-# Тип для переходной модели MDP: P[state][action] = [(prob, next_state, reward, done), ...]
-MDPTransitionModel = Dict[int, Dict[int, List[Tuple[float, int, float, bool]]]]
-Policy = List[int]  # Политика: список действий для каждого состояния
-
-
-class PolicyIterationSolver:
-    """
-    Реализация алгоритма итерации политик (Policy Iteration) для решения MDP.
-    
-    Алгоритм состоит из двух этапов:
-    1. Policy Evaluation - оценка текущей политики
-    2. Policy Improvement - улучшение политики на основе Q-функции
-    """
-    
+class MDP:
     def __init__(
         self,
-        P: MDPTransitionModel,
+        P: Dict[int, Dict[int, List[Tuple[float, int, float, bool]]]],
         gamma: Optional[float] = None,
         theta: float = 1e-10
     ) -> None:
@@ -35,18 +22,6 @@ class PolicyIterationSolver:
         self.P = P
         self.gamma = gamma
         self.theta = theta
-
-    def get_available_actions(self, state: int) -> List[int]:
-        """
-        Получить список доступных действий для заданного состояния.
-        
-        Args:
-            state: Номер состояния.
-            
-        Returns:
-            Список доступных действий для состояния.
-        """
-        return list(self.P[state].keys())
 
     def transition_func(self, state: int, action: int) -> int:
         """
@@ -93,7 +68,7 @@ class PolicyIterationSolver:
         else:
             return prob * (reward + prev_V[next_state] * (not done))
 
-    def get_random_policy(self) -> Policy:
+    def get_random_policy(self) -> List[int]:
         """
         Генерирует случайную политику.
         
@@ -109,7 +84,7 @@ class PolicyIterationSolver:
         ]
         return pi
 
-    def v_function(self, pi: Policy, prev_V: np.ndarray) -> np.ndarray:
+    def v_function(self, pi: List[int], prev_V: np.ndarray) -> np.ndarray:
         """
         Вычисляет функцию ценности состояний V^π.
         
@@ -154,7 +129,7 @@ class PolicyIterationSolver:
 
         return Q
 
-    def policy_evaluation(self, pi: Policy) -> np.ndarray:
+    def policy_evaluation(self, pi: List[int]) -> np.ndarray:
         """
         Алгоритм оценки политики (Policy Evaluation).
         
@@ -178,7 +153,7 @@ class PolicyIterationSolver:
 
         return V
 
-    def policy_improvement(self, V: np.ndarray) -> Policy:
+    def policy_improvement(self, V: np.ndarray) -> List[int]:
         """
         Алгоритм улучшения политики (Policy Improvement).
         
@@ -193,7 +168,7 @@ class PolicyIterationSolver:
         new_pi = self.q_function(V)
         return new_pi
 
-    def policy_iteration(self) -> Tuple[np.ndarray, Policy]:
+    def policy_iteration(self) -> Tuple[np.ndarray, List[int]]:
         """
         Алгоритм итерации политик (Policy Iteration).
         
@@ -215,9 +190,9 @@ class PolicyIterationSolver:
             if old_pi == pi:
                 break
 
-        return V, pi, i
+        return V, pi
 
-    def value_iteration(self) -> Tuple[np.ndarray, Policy]:
+    def value_iteration(self) -> Tuple[np.ndarray, List[int]]:
         """
         Алгоритм итерации ценностей (Value Iteration).
         
@@ -243,32 +218,33 @@ class PolicyIterationSolver:
 
         pi = np.argmax(Q, axis=1).tolist()
 
-        return V, pi, i
+        return V, pi
 
 if __name__ == "__main__":
     # Пример использования
     P = gym.make('FrozenLake-v1').env.P
     
     # Создаём решатель с коэффициентом дисконтирования 1.0
-    solver = PolicyIterationSolver(P, gamma=1.0)
+    solver = MDP(P, gamma=1.0)
     
     # Находим оптимальную политику
-    V, pi, i = solver.policy_iteration()
-    VI, pi_VI, i_VI = solver.value_iteration()
-    
+
+
     def print_array(arr: List[Any], width: int = 4) -> None:
         """Выводит массив в виде сетки заданной ширины."""
         for i in range(0, len(arr), width):
             print(arr[i:i + width])
-    
-    print('Оптимальная V-функция для алгоритма итерации политик:')
-    print_array(V.tolist())
 
-    print('\nОптимальная V-функция для алгоритма итерации ценностей:')
-    print_array(VI.tolist())
 
-    print('\nОптимальная политика для алгоритма итерации политик:')
-    print_array(pi)
+    V_VI, pi_VI = solver.value_iteration()
 
     print('\nОптимальная политика для алгоритма итерации ценностей:')
     print_array(pi_VI)
+
+    state = 0
+    history = []
+    while state != 15:
+        history.append({state: pi_VI[state]})
+        state = solver.transition_func(state=state, action=pi_VI[state])
+
+    print_array(history)
